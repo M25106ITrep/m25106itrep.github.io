@@ -17,8 +17,8 @@
       display: block;
       margin: 0 auto;
       border: 3px solid white;
-      width: 80vw; /* Set the canvas to be smaller */
-      height: 40vh;
+      height: 100vh; /* Set canvas height to 100% of viewport */
+      width: 100%; /* Set canvas width to 100% of viewport */
     }
     #restartButton {
       display: none;
@@ -53,9 +53,9 @@
     const GRAVITY = 0.5;
     const worldScale = 2; // Scale the world objects (player, enemies, etc.)
 
-    // Resize the canvas to be smaller but scale the game world
-    canvas.width = window.innerWidth * 0.8;
-    canvas.height = window.innerHeight * 0.4;
+    // Resize the canvas to full height and wide width for the level
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth * 2; // Make the level twice as wide
 
     const player = {
       x: 50, y: 0, width: 40 * worldScale, height: 40 * worldScale,
@@ -76,22 +76,22 @@
     }
 
     function generateLevel(n) {
-      const platforms = [{ x: 0, y: 680 * worldScale, width: 1500 * worldScale, height: 20 * worldScale }];
+      const platforms = [{ x: 0, y: 680 * worldScale, width: 3000 * worldScale, height: 20 * worldScale }];
       const coins = [];
       const enemies = [];
-      const powerUp = Math.random() < 0.3 ? { x: Math.random() * 1400 * worldScale, y: 600 * worldScale, collected: false } : null;
+      const powerUp = Math.random() < 0.3 ? { x: Math.random() * 3000 * worldScale, y: 600 * worldScale, collected: false } : null;
 
       for (let i = 0; i < 6 + n / 10; i++) {
-        const x = 100 * worldScale + i * 300 * worldScale + Math.random() * 100 * worldScale;
+        const x = 100 * worldScale + i * 600 * worldScale + Math.random() * 100 * worldScale;
         const y = 600 * worldScale - i * 100 * worldScale;
-        platforms.push({ x, y, width: 200 * worldScale + Math.random() * 100 * worldScale, height: 20 * worldScale });
+        platforms.push({ x, y, width: 300 * worldScale + Math.random() * 100 * worldScale, height: 20 * worldScale });
         coins.push({ x: x + 25 * worldScale, y: y - 40 * worldScale, collected: false });
       }
 
       const enemyCount = Math.min(15, Math.floor(n / 5) + 5);
       for (let i = 0; i < enemyCount; i++) {
         enemies.push({
-          x: 100 * worldScale + i * 200 * worldScale,
+          x: 100 * worldScale + i * 400 * worldScale,
           y: 660 * worldScale,
           width: 40 * worldScale,
           height: 30 * worldScale,
@@ -108,7 +108,7 @@
           coins: [],
           enemies: [],
           boss: {
-            x: 1300 * worldScale,
+            x: 2500 * worldScale,
             y: 600 * worldScale,
             width: 180 * worldScale,
             height: 180 * worldScale,
