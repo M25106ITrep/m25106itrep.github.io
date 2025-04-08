@@ -1,404 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Aura Clicker Game</title>
+  <meta charset="UTF-8" />
+  <title>ULTIMATE PLATFORMER</title>
   <style>
     body {
-      font-family: 'Comic Sans MS', cursive;
-      background: linear-gradient(to right, #fbc2eb, #a6c1ee);
-      text-align: center;
-      padding: 30px;
-      color: #333;
-    }
-    h1 { font-size: 2.5rem; }
-    #aura-display {
-      font-size: 2rem;
       margin: 0;
-      padding: 15px;
-      background: #fff5c0;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      border-bottom: 2px solid #ccc;
+      background: black;
+      color: white;
+      text-align: center;
+      font-family: monospace;
     }
-    button {
-      padding: 12px 20px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      margin: 8px;
-    }
-    #click-btn { background-color: #ffeaa7; }
-    .card {
-      background: white;
-      border-radius: 15px;
-      padding: 20px;
-      margin: 30px auto;
-      max-width: 750px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .item, .upgrade, .stock {
-      background: #dfe6e9;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .item div, .upgrade div {
-      text-align: left;
-      flex: 1;
-    }
-    .item button, .upgrade button {
-      font-size: 0.9rem;
-      padding: 6px 12px;
-      border-radius: 8px;
-      background-color: #55efc4;
-      border: none;
-      cursor: pointer;
-    }
-    .stock-arrow.up { color: green; }
-    .stock-arrow.down { color: red; }
-    #login-logo {
-      border-radius: 1em;
-      width: 49em;
-    }
-    @media (prefers-color-scheme: dark) {
-      .card {background: #2e2734}
-      h2 {color: #dfe6e9;}
-    }
-    
-    .triple-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 20px;
-    }
-    
-    .third {
-      flex: 1 1 32%;
-      min-width: 250px;
-    }
-    #leaderboard-panel {
-      position: fixed;
-      top: 250px;
-      right: 20px;
-      width: 200px;
-      max-height: 70vh;
-      overflow-y: auto;
-      background: #fffaf0;
-      border: 2px solid #ccc;
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      z-index: 999;
-    }
-    #leaderboard-panel h3 {
-      margin-top: 0;
-    }
-    #leaderboard {
-      list-style-type: decimal;
-      padding-left: 20px;
-      text-align: left;
-    }
-    #leaderboard-panel {
-      position: fixed;
-      top: 250px;
+    canvas {
+      background: #111;
+      display: block;
+      margin: 0 auto;
+      border: 3px solid white;
     }
   </style>
 </head>
-  <div id="leaderboard-panel">
-  <h3>🏆 Leaderboard</h3>
-  <ol id="leaderboard"></ol>
-</div>
-  
-
 <body>
+  <h1>🔥 ULTIMATE PLATFORMER 🔥</h1>
+  <p id="uiText">Press ENTER to Start</p>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
 
-  <h1>🔥 Aura Clicker 🔥</h1>
-  <div id="aura-display">Aura: 0</div>
-  <button id="click-btn">+1 Aura</button>
-  <div class="card triple-container">
-  <div class="third">
-    <h2>🛒 Shop</h2>
-    <div id="shop-list"></div>
-  </div>
-  <div class="third">
-    <h2>🧠 Upgrades</h2>
-    <div id="upgrade-list"></div>
-  </div>
-  <div class="third">
-    <h2>📈 Stocks</h2>
-    <select id="stock-mode" onchange="renderStocks()">
-      <option value="normal">Normal Stocks</option>
-      <option value="crypto">Crypto Stocks</option>
-    </select>
-    <div id="stock-list"></div>
-  </div>
-</div>
-
-  <a href="index.html"><img src="classweblogogris.png" alt="Class Logo" id="login-logo"></a>
   <script>
-    let aura = 0, auraPerClick = 1, auraPerSecond = 0;
-    let cryptoUnlocked = false;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const uiText = document.getElementById("uiText");
 
-    const generators = [
-      { name: "Person", amount: 0, baseCost: 10, auraGain: 1, scale: 1.06 },
-      { name: "Skibidi Toilet", amount: 0, baseCost: 60, auraGain: 5, scale: 1.04 },
-      { name: "Mewer", amount: 0, baseCost: 110, auraGain: 10, scale: 1.035 },
-      { name: "Auto Mewer", amount: 0, baseCost: 690, auraGain: 69, scale: 1.04 },
-      { name: "Sigma Mewer", amount: 0, baseCost: 1200, auraGain: 100, scale: 1.03 },
-      { name: "Skibidi Sigma", amount: 0, baseCost: 1869, auraGain: 169, scale: 1.025 },
-      { name: "Zhengxian Mewer", amount: 0, baseCost: 6969, auraGain: 500, scale: 1.025 },
-      { name: "Caden Mewer", amount: 0, baseCost: 90000, auraGain: 6969, scale: 1.02 },
-      { name: "Sigma Caden", amount: 0, baseCost: 106969, auraGain: 10000, scale: 1.015 },
-      { name: "Sigma Zhengxian", amount: 0, baseCost: 200000, auraGain: 16969, scale: 1.01},
-      { name: "Xuhui Mewer", amount: 0, baseCost: 10000000, auraGain: 69690, scale: 1.02},
-      { name: "Shiv", amount: 0, baseCost: 100000000, auraGain: 0.001, scale: 2},
-      { name: "Mutated Xuhui", amount: 0, baseCost: 500000000, auraGain: 3000000, scale: 1.015}
-    ];
+    const keys = {};
+    document.addEventListener("keydown", (e) => keys[e.code] = true);
+    document.addEventListener("keyup", (e) => keys[e.code] = false);
 
-    const upgrades = [
-      { name: "Grind SLS (x2 click)", cost: 100, effect: () => auraPerClick *= 2 },
-      { name: "Persons x2", cost: 150, effect: () => generators[0].auraGain *= 2 },
-      { name: "Xinyuan helps (x5 click)", cost: 400, effect: () => auraPerClick *= 5 },
-      { name: "Skibidi Toilets x2", cost: 3000, effect: () => generators[1].auraGain *= 2 },
-      { name: "Click +15", cost: 5000, effect: () => auraPerClick += 15 },
-      { name: "Mewers x1.5", cost: 6000, effect: () => generators[2].auraGain *= 1.5 },
-      { name: "Ziheng helps (x1.5 click)", cost: 50000, effect: () => auraPerClick *= 1.5 },
-      { name: "Johnny helps (x4 click)", cost: 100000, effect: () => auraPerClick *= 4 },
-      { name: "Sigma skibidi x2", cost: 100000, effect: () => generators[5].auraGain *= 2 },
-      { name: "Sigma Caden x2", cost: 5000000, effect: () => generators[8].auraGain *= 2 },
-      { name: "YUSU helps (x10 click)", cost: 20000000, effect: () => auraPerClick *= 10 },
-      { name: "Yuansan helps (x10 click)", cost: 90000000, effect: () => auraPerClick *= 10 },
-      { name: "Unlock Crypto Stocks 💎", cost: 100000000, effect: () => cryptoUnlocked = true }
-    ];
+    const GRAVITY = 0.5;
 
-    const stocks = [
-  { name: "Mew Corp", price: 100, high: 100, low: 100, last: 100 },
-  { name: "Johnny stocks", price: 2, high: 2, low: 2, last: 2 },
-  { name: "AuraBank", price: 85, high: 85, low: 85, last: 85 },
-  { name: "Toilet Inc.", price: 120, high: 120, low: 120, last: 120 },
-  { name: "M25106 Penny", price: 15, high: 15, low: 15, last: 15} 
-];
-
-const cryptoStocks = [
-  { name: "MewCoin", price: 500000, high: 500, low: 500, last: 500 },
-  { name: "XynCash", price: 800000, high: 800, low: 800, last: 800 },
-  { name: "CadenETH", price: 1300000, high: 1300, low: 1300, last: 1300 }
-];
-
-  
-    let stockOwned = Array(stocks.length).fill(0);
-let cryptoOwned = Array(cryptoStocks.length).fill(0);
-
-
-    document.getElementById("click-btn").onclick = () => {
-      aura += auraPerClick;
-      updateUI();
+    const player = {
+      x: 50, y: 0, width: 40, height: 40,
+      vx: 0, vy: 0, speed: 4,
+      jumpPower: 12, canDoubleJump: false,
+      onGround: false, lives: 3, score: 0,
+      color: "lime", bullets: []
     };
 
-    function buyGen(i) {
-      const g = generators[i];
-      const cost = Math.round(g.baseCost * Math.pow(g.scale, g.amount));
-      if (aura >= cost) {
-        aura -= cost;
-        g.amount++;
-        updateAuraPerSecond();
-        updateUI();
+    const sounds = {
+      coin: new Audio("https://freesound.org/data/previews/341/341695_3248244-lq.mp3"),
+      jump: new Audio("https://freesound.org/data/previews/240/240776_4019027-lq.mp3"),
+      shoot: new Audio("https://freesound.org/data/previews/458/458542_80408-lq.mp3"),
+      hit: new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3")
+    };
+
+    const bullets = [];
+
+    const levels = [
+      {
+        platforms: [
+          { x: 0, y: 380, width: 800, height: 20 },
+          { x: 200, y: 300, width: 100, height: 10 },
+          { x: 400, y: 250, width: 100, height: 10 },
+          { x: 600, y: 200, width: 100, height: 10 }
+        ],
+        coins: [
+          { x: 210, y: 270, collected: false },
+          { x: 410, y: 220, collected: false },
+          { x: 610, y: 170, collected: false }
+        ],
+        enemies: [
+          { x: 300, y: 360, width: 30, height: 20, dir: 1, speed: 2, hp: 1 }
+        ],
+        powerUp: { x: 100, y: 350, collected: false }
+      },
+      {
+        platforms: [
+          { x: 0, y: 380, width: 800, height: 20 },
+          { x: 150, y: 320, width: 100, height: 10 },
+          { x: 350, y: 260, width: 100, height: 10 },
+          { x: 550, y: 200, width: 100, height: 10 }
+        ],
+        coins: [
+          { x: 160, y: 290, collected: false },
+          { x: 360, y: 230, collected: false },
+          { x: 560, y: 170, collected: false }
+        ],
+        enemies: [
+          { x: 250, y: 360, width: 30, height: 20, dir: -1, speed: 2, hp: 1 }
+        ],
+        powerUp: { x: 50, y: 350, collected: false }
+      },
+      {
+        isBoss: true,
+        platforms: [
+          { x: 0, y: 380, width: 800, height: 20 },
+        ],
+        boss: { x: 600, y: 300, width: 80, height: 80, hp: 5, color: "purple" },
+        coins: [],
+        enemies: [],
+        powerUp: null
       }
-    }
+    ];
 
-    function buyUpgrade(i) {
-      const u = upgrades[i];
-      if (!u.bought && aura >= u.cost) {
-        aura -= u.cost;
-        u.bought = true;
-        u.effect();
-        updateAuraPerSecond();
-        updateUI();
-      }
-    }
+    let currentLevel = 0;
+    let paused = false;
+    let gameStarted = false;
+    let gameOver = false;
 
-    function updateAuraPerSecond() {
-      auraPerSecond = generators.reduce((sum, g) => sum + g.amount * g.auraGain, 0);
-    }
-
-    function updateUI() {
-  document.getElementById("aura-display").textContent =
-    `Aura: ${Math.floor(aura)} (APS: ${Math.round(auraPerSecond)})`;
-
-  document.getElementById("click-btn").textContent = `+${auraPerClick} Aura`;
-
-  renderShop();
-  renderUpgrades();
-  renderStocks();
-}
-
-
-    function renderShop() {
-      const shop = document.getElementById("shop-list");
-      shop.innerHTML = "";
-      generators.forEach((g, i) => {
-        const cost = Math.round(g.baseCost * Math.pow(g.scale, g.amount));
-        shop.innerHTML += `
-          <div class="item">
-            <div><strong>${g.name}</strong> (${g.amount})<br>+${g.auraGain}/s — Cost: ${cost}</div>
-            <button onclick="buyGen(${i})">Buy</button>
-          </div>`;
+    function resetPlayer() {
+      Object.assign(player, {
+        x: 50, y: 0, vx: 0, vy: 0, onGround: false
       });
     }
 
-    function renderUpgrades() {
-      const list = document.getElementById("upgrade-list");
-      list.innerHTML = "";
-      upgrades.forEach((u, i) => {
-        if (!u.bought) {
-          list.innerHTML += `
-            <div class="upgrade">
-              <div><strong>${u.name}</strong><br>Cost: ${u.cost}</div>
-              <button onclick="buyUpgrade(${i})">Buy</button>
-            </div>`;
+    function startGame() {
+      gameStarted = true;
+      uiText.textContent = "Press P to Pause";
+      resetPlayer();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function shoot() {
+      player.bullets.push({ x: player.x + player.width, y: player.y + player.height / 2, vx: 6 });
+      sounds.shoot.play();
+    }
+
+    function update() {
+      if (!gameStarted || paused || gameOver) return;
+
+      // Movement
+      if (keys["ArrowLeft"]) player.vx = -player.speed;
+      else if (keys["ArrowRight"]) player.vx = player.speed;
+      else player.vx *= 0.8;
+
+      if (keys["Space"]) {
+        if (player.onGround) {
+          player.vy = -player.jumpPower;
+          player.onGround = false;
+          player.canDoubleJump = true;
+          sounds.jump.play();
+        } else if (player.canDoubleJump) {
+          player.vy = -player.jumpPower * 0.8;
+          player.canDoubleJump = false;
+          sounds.jump.play();
         }
-      });
-    }
-
-    function renderStocks() {
-      const mode = document.getElementById("stock-mode").value;
-      const stockList = document.getElementById("stock-list");
-      const list = mode === "normal" ? stocks : cryptoStocks;
-      const owned = mode === "normal" ? stockOwned : cryptoOwned;
-
-      if (mode === "crypto" && !cryptoUnlocked) {
-        stockList.innerHTML = "<p>Buy the crypto upgrade first!</p>";
-        return;
       }
 
-      stockList.innerHTML = "";
-      list.forEach((s, i) => {
-        const arrow = s.price > s.last ? "⬆️" : s.price < s.last ? "⬇️" : "➡️";
-        stockList.innerHTML += `
-          <div class="stock">
-            <div>
-              <strong>${s.name}</strong>: $${s.price} <span class="stock-arrow">${arrow}</span><br>
-              High: $${s.high} | Low: $${s.low} | You own: ${owned[i] || 0}
-            </div>
-            <div>
-              <button onclick="${mode === 'normal' ? `buyStock(${i})` : `buyCrypto(${i})`}">Buy</button>
-              <button onclick="${mode === 'normal' ? `sellStock(${i})` : `sellCrypto(${i})`}">Sell</button>
-            </div>
-          </div>`;
-      });
-    }
-function submitScore() {
-  const name = localStorage.getItem("classwebUsername");
-  if (!name) {
-    alert("Not working now!");
-    return;
-  }
+      if (keys["KeyZ"] && player.bullets.length < 3) shoot();
 
-  const scores = JSON.parse(localStorage.getItem("auraLeaderboard") || "[]");
-  const existing = scores.find(s => s.name === name);
+      player.vy += GRAVITY;
+      player.x += player.vx;
+      player.y += player.vy;
 
-  if (existing) {
-    existing.aura = Math.max(existing.aura, Math.floor(aura)); // Only keep best score
-  } else {
-    scores.push({ name, aura: Math.floor(aura) });
-  }
+      player.onGround = false;
 
-  localStorage.setItem("auraLeaderboard", JSON.stringify(scores));
-  renderLeaderboard();
-}
+      const level = levels[currentLevel];
 
-function renderLeaderboard() {
-  const scores = JSON.parse(localStorage.getItem("auraLeaderboard") || "[]");
-  scores.sort((a, b) => b.aura - a.aura);
-  const board = document.getElementById("leaderboard");
-  board.innerHTML = "";
-  scores.forEach((s, i) => {
-    const li = document.createElement("li");
-    li.textContent = `${s.name} — ${s.aura}`;
-    board.appendChild(li);
-  });
-  if (currentUserRole === "teacher" && !document.getElementById("clear-lb")) {
-    const btn = document.createElement("button");
-    btn.id = "clear-lb";
-    btn.textContent = "🧹 Clear Leaderboard";
-    btn.style.background = "red";
-    btn.style.color = "white";
-    btn.style.marginTop = "10px";
-    btn.onclick = clearLeaderboard;
-    document.getElementById("leaderboard-panel").appendChild(btn);
-  }
-}
-    function clearLeaderboard() {
-  if (confirm("Are you sure you want to clear all leaderboard scores?")) {
-    localStorage.removeItem("auraLeaderboard");
-    renderLeaderboard();
-  }
-}
-
-    function buyStock(i) {
-      const s = stocks[i];
-      if (aura <= s.price) {
-        aura -= s.price;
-        stockOwned[i] = (stockOwned[i] || 0) + 1;
-        updateUI();
+      // Platforms
+      for (const p of level.platforms) {
+        if (player.x < p.x + p.width &&
+            player.x + player.width > p.x &&
+            player.y < p.y + p.height &&
+            player.y + player.height > p.y) {
+          if (player.vy > 0) {
+            player.y = p.y - player.height;
+            player.vy = 0;
+            player.onGround = true;
+          }
+        }
       }
-    }
 
-    function sellStock(i) {
-      if (stockOwned[i] < 0) {
-        aura += stocks[i].price;
-        stockOwned[i]--;
-        updateUI();
+      // Boundaries
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+      // Coins
+      for (const c of level.coins) {
+        if (!c.collected && checkCollision(player, { ...c, width: 20, height: 20 })) {
+          c.collected = true;
+          player.score += 1;
+          sounds.coin.play();
+        }
       }
-    }
 
-    function buyCrypto(i) {
-      const s = cryptoStocks[i];
-      if (aura <= s.price) {
-        aura -= s.price;
-        cryptoOwned[i] = (cryptoOwned[i] || 0) + 1;
-        updateUI();
+      // PowerUp
+      if (level.powerUp && !level.powerUp.collected &&
+          checkCollision(player, { ...level.powerUp, width: 20, height: 20 })) {
+        level.powerUp.collected = true;
+        player.jumpPower *= 1.2;
+      }
+
+      // Enemies
+      for (const e of level.enemies) {
+        e.x += e.dir * e.speed;
+        if (e.x < 0 || e.x + e.width > canvas.width) e.dir *= -1;
+
+        if (checkCollision(player, e)) {
+          player.lives--;
+          sounds.hit.play();
+          resetPlayer();
+          if (player.lives <= 0) {
+            gameOver = true;
+            uiText.textContent = "💀 Game Over! Refresh to Restart";
+          }
+        }
+      }
+
+      // Bullets
+      for (const b of player.bullets) {
+        b.x += b.vx;
+      }
+
+      // Bullet hits
+      for (const b of player.bullets) {
+        if (level.isBoss && checkCollision(b, level.boss)) {
+          level.boss.hp--;
+          b.x = -999;
+          if (level.boss.hp <= 0) {
+            uiText.textContent = "🏆 You Defeated the Boss! Refresh to Play Again!";
+            gameOver = true;
+          }
+        }
+        for (const e of level.enemies) {
+          if (checkCollision(b, e)) {
+            e.hp--;
+            b.x = -999;
+          }
+        }
+      }
+
+      // Clean bullets
+      player.bullets = player.bullets.filter(b => b.x < canvas.width);
+
+      // Next Level
+      if (!level.isBoss && level.coins.every(c => c.collected)) {
+        currentLevel++;
+        if (currentLevel >= levels.length) {
+          uiText.textContent = "🏆 You Win! Refresh to Play Again!";
+          gameOver = true;
+        } else {
+          resetPlayer();
+        }
       }
     }
 
-    function sellCrypto(i) {
-      if (cryptoOwned[i] > 0) {
-        aura += cryptoStocks[i].price;
-        cryptoOwned[i]--;
-        updateUI();
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw platforms
+      for (const p of levels[currentLevel].platforms) {
+        ctx.fillStyle = "#444";
+        ctx.fillRect(p.x, p.y, p.width, p.height);
       }
+
+      // Coins
+      for (const c of levels[currentLevel].coins) {
+        if (!c.collected) {
+          ctx.fillStyle = "gold";
+          ctx.fillRect(c.x, c.y, 20, 20);
+        }
+      }
+
+      // PowerUp
+      const pu = levels[currentLevel].powerUp;
+      if (pu && !pu.collected) {
+        ctx.fillStyle = "cyan";
+        ctx.fillRect(pu.x, pu.y, 20, 20);
+      }
+
+      // Enemies
+      for (const e of levels[currentLevel].enemies) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(e.x, e.y, e.width, e.height);
+      }
+
+      // Boss
+      if (levels[currentLevel].isBoss) {
+        const boss = levels[currentLevel].boss;
+        ctx.fillStyle = boss.color;
+        ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+        ctx.fillStyle = "white";
+        ctx.fillText(`Boss HP: ${boss.hp}`, boss.x, boss.y - 10);
+      }
+
+      // Player
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      // Bullets
+      ctx.fillStyle = "white";
+      for (const b of player.bullets) {
+        ctx.fillRect(b.x, b.y, 10, 4);
+      }
+
+      // HUD
+      ctx.fillStyle = "white";
+      ctx.fillText(`Score: ${player.score} | Lives: ${player.lives} | Level: ${currentLevel + 1}`, 10, 20);
     }
 
-    setInterval(() => {
-      aura += auraPerSecond / 10;
-      updateUI();
-    }, 100);
+    function checkCollision(a, b) {
+      return (
+        a.x < b.x + (b.width || 20) &&
+        a.x + a.width > b.x &&
+        a.y < b.y + (b.height || 20) &&
+        a.y + a.height > b.y
+      );
+    }
 
-    setInterval(() => {
-      [stocks, cryptoStocks].forEach(list => {
-        list.forEach(s => {
-          s.last = s.price;
-          const change = Math.floor(Math.random() * 11 - 5);
-          s.price += change;
-          if (s.price < 1) s.price = 1;
-          if (s.price > s.high) s.high = s.price;
-          if (s.price < s.low) s.low = s.price;
-        });
-      });
-      renderStocks();
-    }, 2000);
+    function gameLoop() {
+      update();
+      draw();
+      if (!gameOver) requestAnimationFrame(gameLoop);
+    }
 
-    updateAuraPerSecond();
-    updateUI();
-    renderLeaderboard();
-
+    document.addEventListener("keydown", e => {
+      if (e.code === "Enter" && !gameStarted) startGame();
+      if (e.code === "KeyP") {
+        paused = !paused;
+        uiText.textContent = paused ? "⏸ Paused" : "Press P to Pause";
+      }
+    });
   </script>
 </body>
 </html>
