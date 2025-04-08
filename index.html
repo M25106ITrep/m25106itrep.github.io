@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ULTIMATE PLATFORMER</title>
+  <title>100 Level Platformer</title>
   <style>
     body {
       margin: 0;
@@ -17,24 +17,37 @@
       margin: 0 auto;
       border: 3px solid white;
     }
+    #restartButton {
+      display: none;
+      padding: 10px 20px;
+      margin-top: 20px;
+      font-size: 18px;
+      background-color: #ff6347;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #restartButton:hover {
+      background-color: #ff4500;
+    }
   </style>
 </head>
 <body>
-  <h1>🔥 ULTIMATE PLATFORMER 🔥</h1>
+  <h1>🧠 100 Level Platformer</h1>
   <p id="uiText">Press ENTER to Start</p>
-  <canvas id="gameCanvas" width="800" height="400"></canvas>
+  <canvas id="gameCanvas" width="1000" height="500"></canvas>
+  <button id="restartButton" onclick="restartGame()">Restart</button>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const uiText = document.getElementById("uiText");
-
+    const restartButton = document.getElementById("restartButton");
     const keys = {};
     document.addEventListener("keydown", (e) => keys[e.code] = true);
     document.addEventListener("keyup", (e) => keys[e.code] = false);
 
     const GRAVITY = 0.5;
-
     const player = {
       x: 50, y: 0, width: 40, height: 40,
       vx: 0, vy: 0, speed: 4,
@@ -43,256 +56,67 @@
       color: "lime", bullets: []
     };
 
-    const sounds = {
-      coin: new Audio("https://freesound.org/data/previews/341/341695_3248244-lq.mp3"),
-      jump: new Audio("https://freesound.org/data/previews/240/240776_4019027-lq.mp3"),
-      shoot: new Audio("https://freesound.org/data/previews/458/458542_80408-lq.mp3"),
-      hit: new Audio("https://freesound.org/data/previews/331/331912_3248244-lq.mp3")
-    };
-
-    const bullets = [];
-
-    const levels = [
-      {
-        platforms: [
-          { x: 0, y: 380, width: 800, height: 20 },
-          { x: 200, y: 300, width: 100, height: 10 },
-          { x: 400, y: 250, width: 100, height: 10 },
-          { x: 600, y: 200, width: 100, height: 10 }
-        ],
-        coins: [
-          { x: 210, y: 270, collected: false },
-          { x: 410, y: 220, collected: false },
-          { x: 610, y: 170, collected: false }
-        ],
-        enemies: [
-          { x: 300, y: 360, width: 30, height: 20, dir: 1, speed: 2, hp: 1 }
-        ],
-        powerUp: { x: 100, y: 350, collected: false }
-      },
-      {
-        platforms: [
-          { x: 0, y: 380, width: 800, height: 20 },
-          { x: 150, y: 320, width: 100, height: 10 },
-          { x: 350, y: 260, width: 100, height: 10 },
-          { x: 550, y: 200, width: 100, height: 10 }
-        ],
-        coins: [
-          { x: 160, y: 290, collected: false },
-          { x: 360, y: 230, collected: false },
-          { x: 560, y: 170, collected: false }
-        ],
-        enemies: [
-          { x: 250, y: 360, width: 30, height: 20, dir: -1, speed: 2, hp: 1 }
-        ],
-        powerUp: { x: 50, y: 350, collected: false }
-      },
-      {
-        isBoss: true,
-        platforms: [
-          { x: 0, y: 380, width: 800, height: 20 },
-        ],
-        boss: { x: 600, y: 300, width: 80, height: 80, hp: 5, color: "purple" },
-        coins: [],
-        enemies: [],
-        powerUp: null
-      }
-    ];
-
-    let currentLevel = 0;
+    let currentLevel = 1;
     let paused = false;
     let gameStarted = false;
     let gameOver = false;
+    let levelData = {};
 
     function resetPlayer() {
-      Object.assign(player, {
-        x: 50, y: 0, vx: 0, vy: 0, onGround: false
-      });
+      Object.assign(player, { x: 50, y: 0, vx: 0, vy: 0, onGround: false });
     }
 
-    function startGame() {
-      gameStarted = true;
-      uiText.textContent = "Press P to Pause";
-      resetPlayer();
-      requestAnimationFrame(gameLoop);
+    function generateLevel(n) {
+      const platforms = [{ x: 0, y: 480, width: 1000, height: 20 }];
+      const coins = [];
+      const enemies = [];
+      const powerUp = Math.random() < 0.3 ? { x: Math.random() * 900, y: 400, collected: false } : null;
+
+      for (let i = 0; i < 6 + n / 10; i++) {
+        const x = 100 + i * 200 + Math.random() * 100;
+        const y = 400 - i * 80;
+        platforms.push({ x, y, width: 150 + Math.random() * 50, height: 10 });
+        coins.push({ x: x + 15, y: y - 30, collected: false });
+      }
+
+      const enemyCount = Math.min(10, Math.floor(n / 5) + 3);
+      for (let i = 0; i < enemyCount; i++) {
+        enemies.push({
+          x: 100 + i * 100,
+          y: 460,
+          width: 30,
+          height: 20,
+          dir: Math.random() < 0.5 ? 1 : -1,
+          speed: 1 + n * 0.1,
+          hp: 1 + Math.floor(n / 10)
+        });
+      }
+
+      if (n % 10 === 0) {
+        return {
+          isBoss: true,
+          platforms,
+          coins: [],
+          enemies: [],
+          boss: {
+            x: 800,
+            y: 350,
+            width: 120,
+            height: 120,
+            hp: 10 + n / 5,
+            color: "#8b0000",
+            dir: -1,
+            speed: 1 + n * 0.05
+          },
+          powerUp
+        };
+      }
+
+      return { isBoss: false, platforms, coins, enemies, powerUp };
     }
 
     function shoot() {
       player.bullets.push({ x: player.x + player.width, y: player.y + player.height / 2, vx: 6 });
-      sounds.shoot.play();
-    }
-
-    function update() {
-      if (!gameStarted || paused || gameOver) return;
-
-      // Movement
-      if (keys["ArrowLeft"]) player.vx = -player.speed;
-      else if (keys["ArrowRight"]) player.vx = player.speed;
-      else player.vx *= 0.8;
-
-      if (keys["Space"]) {
-        if (player.onGround) {
-          player.vy = -player.jumpPower;
-          player.onGround = false;
-          player.canDoubleJump = true;
-          sounds.jump.play();
-        } else if (player.canDoubleJump) {
-          player.vy = -player.jumpPower * 0.8;
-          player.canDoubleJump = false;
-          sounds.jump.play();
-        }
-      }
-
-      if (keys["KeyZ"] && player.bullets.length < 3) shoot();
-
-      player.vy += GRAVITY;
-      player.x += player.vx;
-      player.y += player.vy;
-
-      player.onGround = false;
-
-      const level = levels[currentLevel];
-
-      // Platforms
-      for (const p of level.platforms) {
-        if (player.x < p.x + p.width &&
-            player.x + player.width > p.x &&
-            player.y < p.y + p.height &&
-            player.y + player.height > p.y) {
-          if (player.vy > 0) {
-            player.y = p.y - player.height;
-            player.vy = 0;
-            player.onGround = true;
-          }
-        }
-      }
-
-      // Boundaries
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-
-      // Coins
-      for (const c of level.coins) {
-        if (!c.collected && checkCollision(player, { ...c, width: 20, height: 20 })) {
-          c.collected = true;
-          player.score += 1;
-          sounds.coin.play();
-        }
-      }
-
-      // PowerUp
-      if (level.powerUp && !level.powerUp.collected &&
-          checkCollision(player, { ...level.powerUp, width: 20, height: 20 })) {
-        level.powerUp.collected = true;
-        player.jumpPower *= 1.2;
-      }
-
-      // Enemies
-      for (const e of level.enemies) {
-        e.x += e.dir * e.speed;
-        if (e.x < 0 || e.x + e.width > canvas.width) e.dir *= -1;
-
-        if (checkCollision(player, e)) {
-          player.lives--;
-          sounds.hit.play();
-          resetPlayer();
-          if (player.lives <= 0) {
-            gameOver = true;
-            uiText.textContent = "💀 Game Over! Refresh to Restart";
-          }
-        }
-      }
-
-      // Bullets
-      for (const b of player.bullets) {
-        b.x += b.vx;
-      }
-
-      // Bullet hits
-      for (const b of player.bullets) {
-        if (level.isBoss && checkCollision(b, level.boss)) {
-          level.boss.hp--;
-          b.x = -999;
-          if (level.boss.hp <= 0) {
-            uiText.textContent = "🏆 You Defeated the Boss! Refresh to Play Again!";
-            gameOver = true;
-          }
-        }
-        for (const e of level.enemies) {
-          if (checkCollision(b, e)) {
-            e.hp--;
-            b.x = -999;
-          }
-        }
-      }
-
-      // Clean bullets
-      player.bullets = player.bullets.filter(b => b.x < canvas.width);
-
-      // Next Level
-      if (!level.isBoss && level.coins.every(c => c.collected)) {
-        currentLevel++;
-        if (currentLevel >= levels.length) {
-          uiText.textContent = "🏆 You Win! Refresh to Play Again!";
-          gameOver = true;
-        } else {
-          resetPlayer();
-        }
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw platforms
-      for (const p of levels[currentLevel].platforms) {
-        ctx.fillStyle = "#444";
-        ctx.fillRect(p.x, p.y, p.width, p.height);
-      }
-
-      // Coins
-      for (const c of levels[currentLevel].coins) {
-        if (!c.collected) {
-          ctx.fillStyle = "gold";
-          ctx.fillRect(c.x, c.y, 20, 20);
-        }
-      }
-
-      // PowerUp
-      const pu = levels[currentLevel].powerUp;
-      if (pu && !pu.collected) {
-        ctx.fillStyle = "cyan";
-        ctx.fillRect(pu.x, pu.y, 20, 20);
-      }
-
-      // Enemies
-      for (const e of levels[currentLevel].enemies) {
-        ctx.fillStyle = "red";
-        ctx.fillRect(e.x, e.y, e.width, e.height);
-      }
-
-      // Boss
-      if (levels[currentLevel].isBoss) {
-        const boss = levels[currentLevel].boss;
-        ctx.fillStyle = boss.color;
-        ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
-        ctx.fillStyle = "white";
-        ctx.fillText(`Boss HP: ${boss.hp}`, boss.x, boss.y - 10);
-      }
-
-      // Player
-      ctx.fillStyle = player.color;
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-
-      // Bullets
-      ctx.fillStyle = "white";
-      for (const b of player.bullets) {
-        ctx.fillRect(b.x, b.y, 10, 4);
-      }
-
-      // HUD
-      ctx.fillStyle = "white";
-      ctx.fillText(`Score: ${player.score} | Lives: ${player.lives} | Level: ${currentLevel + 1}`, 10, 20);
     }
 
     function checkCollision(a, b) {
@@ -304,14 +128,178 @@
       );
     }
 
+    function update() {
+      if (!gameStarted || paused || gameOver) return;
+
+      if (keys["ArrowLeft"]) player.vx = -player.speed;
+      else if (keys["ArrowRight"]) player.vx = player.speed;
+      else player.vx *= 0.8;
+
+      if (keys["Space"]) {
+        if (player.onGround) {
+          player.vy = -player.jumpPower;
+          player.onGround = false;
+          player.canDoubleJump = true;
+        } else if (player.canDoubleJump) {
+          player.vy = -player.jumpPower * 0.8;
+          player.canDoubleJump = false;
+        }
+      }
+
+      if (keys["KeyZ"] && player.bullets.length < 3) shoot();
+
+      player.vy += GRAVITY;
+      player.x += player.vx;
+      player.y += player.vy;
+      player.onGround = false;
+
+      for (const p of levelData.platforms) {
+        if (checkCollision(player, p) && player.vy > 0) {
+          player.y = p.y - player.height;
+          player.vy = 0;
+          player.onGround = true;
+        }
+      }
+
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+      for (const c of levelData.coins) {
+        if (!c.collected && checkCollision(player, { ...c, width: 20, height: 20 })) {
+          c.collected = true;
+          player.score++;
+        }
+      }
+
+      if (levelData.powerUp && !levelData.powerUp.collected && checkCollision(player, { ...levelData.powerUp, width: 20, height: 20 })) {
+        levelData.powerUp.collected = true;
+        player.jumpPower *= 1.2;
+      }
+
+      for (const e of levelData.enemies) {
+        e.x += e.dir * e.speed;
+        if (e.x < 0 || e.x + e.width > canvas.width) e.dir *= -1;
+        if (checkCollision(player, e)) {
+          player.lives--;
+          resetPlayer();
+          if (player.lives <= 0) {
+            gameOver = true;
+            uiText.textContent = "💀 Game Over at Level " + currentLevel;
+            restartButton.style.display = 'block'; // Show the restart button
+          }
+        }
+      }
+
+      if (levelData.isBoss) {
+        const b = levelData.boss;
+        b.x += b.dir * b.speed;
+        if (b.x < 0 || b.x + b.width > canvas.width) b.dir *= -1;
+        if (checkCollision(player, b)) {
+          player.lives--;
+          resetPlayer();
+          if (player.lives <= 0) {
+            gameOver = true;
+            uiText.textContent = "💀 Killed by the Boss at Level " + currentLevel;
+            restartButton.style.display = 'block'; // Show the restart button
+          }
+        }
+      }
+
+      for (const b of player.bullets) b.x += b.vx;
+
+      for (const b of player.bullets) {
+        if (levelData.isBoss && checkCollision(b, levelData.boss)) {
+          levelData.boss.hp--;
+          b.x = -999;
+          if (levelData.boss.hp <= 0) {
+            currentLevel++;
+            levelData = generateLevel(currentLevel);
+            resetPlayer();
+          }
+        }
+        for (const e of levelData.enemies) {
+          if (checkCollision(b, e)) {
+            e.hp--;
+            b.x = -999;
+          }
+        }
+      }
+
+      player.bullets = player.bullets.filter(b => b.x < canvas.width);
+
+      if (!levelData.isBoss && levelData.coins.every(c => c.collected)) {
+        currentLevel++;
+        if (currentLevel > 100) {
+          gameOver = true;
+          uiText.textContent = "🏆 You Beat All 100 Levels!";
+          restartButton.style.display = 'block'; // Show the restart button
+        } else {
+          levelData = generateLevel(currentLevel);
+          resetPlayer();
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of levelData.platforms) {
+        ctx.fillStyle = "#444";
+        ctx.fillRect(p.x, p.y, p.width, p.height);
+      }
+      for (const c of levelData.coins) {
+        if (!c.collected) {
+          ctx.fillStyle = "gold";
+          ctx.fillRect(c.x, c.y, 20, 20);
+        }
+      }
+      if (levelData.powerUp && !levelData.powerUp.collected) {
+        ctx.fillStyle = "cyan";
+        ctx.fillRect(levelData.powerUp.x, levelData.powerUp.y, 20, 20);
+      }
+      for (const e of levelData.enemies) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(e.x, e.y, e.width, e.height);
+      }
+      if (levelData.isBoss) {
+        const b = levelData.boss;
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.width, b.height);
+        ctx.fillStyle = "white";
+        ctx.font = "16px monospace";
+        ctx.fillText(`👹 BOSS HP: ${b.hp}`, b.x, b.y - 10);
+      }
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+      ctx.fillStyle = "white";
+      for (const b of player.bullets) ctx.fillRect(b.x, b.y, 10, 4);
+      ctx.fillText(`Score: ${player.score} | Lives: ${player.lives} | Level: ${currentLevel}`, 10, 20);
+    }
+
     function gameLoop() {
       update();
       draw();
       if (!gameOver) requestAnimationFrame(gameLoop);
     }
 
+    function restartGame() {
+      gameStarted = true;
+      gameOver = false;
+      currentLevel = 1;
+      levelData = generateLevel(currentLevel);
+      resetPlayer();
+      uiText.textContent = "Press P to Pause";
+      restartButton.style.display = 'none'; // Hide the restart button
+      requestAnimationFrame(gameLoop);
+    }
+
     document.addEventListener("keydown", e => {
-      if (e.code === "Enter" && !gameStarted) startGame();
+      if (e.code === "Enter" && !gameStarted) {
+        gameStarted = true;
+        uiText.textContent = "Press P to Pause";
+        levelData = generateLevel(currentLevel);
+        resetPlayer();
+        requestAnimationFrame(gameLoop);
+      }
       if (e.code === "KeyP") {
         paused = !paused;
         uiText.textContent = paused ? "⏸ Paused" : "Press P to Pause";
@@ -320,3 +308,4 @@
   </script>
 </body>
 </html>
+
