@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>100 Level Platformer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heat-Seeking Platformer - 100 Levels</title>
   <style>
     body {
       margin: 0;
-      background: black;
+      background: #111;
       color: white;
       text-align: center;
       font-family: monospace;
     }
     canvas {
-      background: #111;
+      background: #222;
       display: block;
       margin: 0 auto;
       border: 3px solid white;
@@ -35,7 +36,7 @@
 <body>
   <h1>🧠 100 Level Platformer</h1>
   <p id="uiText">Press ENTER to Start</p>
-  <canvas id="gameCanvas" width="1000" height="500"></canvas>
+  <canvas id="gameCanvas" width="1500" height="700"></canvas>
   <button id="restartButton" onclick="restartGame()">Restart</button>
 
   <script>
@@ -50,8 +51,8 @@
     const GRAVITY = 0.5;
     const player = {
       x: 50, y: 0, width: 40, height: 40,
-      vx: 0, vy: 0, speed: 4,
-      jumpPower: 12, canDoubleJump: false,
+      vx: 0, vy: 0, speed: 12, // Faster speed for player
+      jumpPower: 14, canDoubleJump: false,
       onGround: false, lives: 3, score: 0,
       color: "lime", bullets: []
     };
@@ -67,25 +68,25 @@
     }
 
     function generateLevel(n) {
-      const platforms = [{ x: 0, y: 480, width: 1000, height: 20 }];
+      const platforms = [{ x: 0, y: 680, width: 1500, height: 20 }];
       const coins = [];
       const enemies = [];
-      const powerUp = Math.random() < 0.3 ? { x: Math.random() * 900, y: 400, collected: false } : null;
+      const powerUp = Math.random() < 0.3 ? { x: Math.random() * 1400, y: 600, collected: false } : null;
 
       for (let i = 0; i < 6 + n / 10; i++) {
-        const x = 100 + i * 200 + Math.random() * 100;
-        const y = 400 - i * 80;
-        platforms.push({ x, y, width: 150 + Math.random() * 50, height: 10 });
-        coins.push({ x: x + 15, y: y - 30, collected: false });
+        const x = 100 + i * 300 + Math.random() * 100;
+        const y = 600 - i * 100;
+        platforms.push({ x, y, width: 200 + Math.random() * 100, height: 20 });
+        coins.push({ x: x + 25, y: y - 40, collected: false });
       }
 
-      const enemyCount = Math.min(10, Math.floor(n / 5) + 3);
+      const enemyCount = Math.min(15, Math.floor(n / 5) + 5);
       for (let i = 0; i < enemyCount; i++) {
         enemies.push({
-          x: 100 + i * 100,
-          y: 460,
-          width: 30,
-          height: 20,
+          x: 100 + i * 200,
+          y: 660,
+          width: 40,
+          height: 30,
           dir: Math.random() < 0.5 ? 1 : -1,
           speed: 1 + n * 0.1,
           hp: 1 + Math.floor(n / 10)
@@ -99,11 +100,11 @@
           coins: [],
           enemies: [],
           boss: {
-            x: 800,
-            y: 350,
-            width: 120,
-            height: 120,
-            hp: 10 + n / 5,
+            x: 1300,
+            y: 600,
+            width: 180,
+            height: 180,
+            hp: 15 + n / 5,
             color: "#8b0000",
             dir: -1,
             speed: 1 + n * 0.05
@@ -116,7 +117,7 @@
     }
 
     function shoot() {
-      player.bullets.push({ x: player.x + player.width, y: player.y + player.height / 2, vx: 6 });
+      player.bullets.push({ x: player.x + player.width, y: player.y + player.height / 2, vx: 8 });
     }
 
     function checkCollision(a, b) {
@@ -131,6 +132,7 @@
     function update() {
       if (!gameStarted || paused || gameOver) return;
 
+      // Player Movement
       if (keys["ArrowLeft"]) player.vx = -player.speed;
       else if (keys["ArrowRight"]) player.vx = player.speed;
       else player.vx *= 0.8;
@@ -148,11 +150,13 @@
 
       if (keys["KeyZ"] && player.bullets.length < 3) shoot();
 
+      // Apply gravity to player
       player.vy += GRAVITY;
       player.x += player.vx;
       player.y += player.vy;
       player.onGround = false;
 
+      // Platform collision detection
       for (const p of levelData.platforms) {
         if (checkCollision(player, p) && player.vy > 0) {
           player.y = p.y - player.height;
@@ -161,9 +165,11 @@
         }
       }
 
+      // Ensure the player stays within bounds
       if (player.x < 0) player.x = 0;
       if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 
+      // Coin collection
       for (const c of levelData.coins) {
         if (!c.collected && checkCollision(player, { ...c, width: 20, height: 20 })) {
           c.collected = true;
@@ -171,14 +177,27 @@
         }
       }
 
+      // Power-up collection
       if (levelData.powerUp && !levelData.powerUp.collected && checkCollision(player, { ...levelData.powerUp, width: 20, height: 20 })) {
         levelData.powerUp.collected = true;
         player.jumpPower *= 1.2;
       }
 
+      // Enemy collision detection and heat-seeking behavior
       for (const e of levelData.enemies) {
-        e.x += e.dir * e.speed;
-        if (e.x < 0 || e.x + e.width > canvas.width) e.dir *= -1;
+        const dirX = player.x - e.x; // Horizontal distance to player
+        const dirY = player.y - e.y; // Vertical distance to player
+
+        // Normalize direction to get the right speed in both x and y directions
+        const distance = Math.sqrt(dirX * dirX + dirY * dirY);
+        const moveX = (dirX / distance) * e.speed;
+        const moveY = (dirY / distance) * e.speed;
+
+        // Move the enemy towards the player
+        e.x += moveX;
+        e.y += moveY;
+
+        // If enemy collides with player, player loses life
         if (checkCollision(player, e)) {
           player.lives--;
           resetPlayer();
@@ -190,10 +209,19 @@
         }
       }
 
+      // Boss behavior (if applicable)
       if (levelData.isBoss) {
         const b = levelData.boss;
-        b.x += b.dir * b.speed;
-        if (b.x < 0 || b.x + b.width > canvas.width) b.dir *= -1;
+        const dirX = player.x - b.x;
+        const dirY = player.y - b.y;
+
+        const distance = Math.sqrt(dirX * dirX + dirY * dirY);
+        const moveX = (dirX / distance) * b.speed;
+        const moveY = (dirY / distance) * b.speed;
+
+        b.x += moveX;
+        b.y += moveY;
+
         if (checkCollision(player, b)) {
           player.lives--;
           resetPlayer();
@@ -205,6 +233,7 @@
         }
       }
 
+      // Bullet movement and collision detection
       for (const b of player.bullets) b.x += b.vx;
 
       for (const b of player.bullets) {
@@ -225,8 +254,10 @@
         }
       }
 
+      // Remove bullets that have gone off-screen
       player.bullets = player.bullets.filter(b => b.x < canvas.width);
 
+      // Move to the next level if all coins are collected
       if (!levelData.isBoss && levelData.coins.every(c => c.collected)) {
         currentLevel++;
         if (currentLevel > 100) {
@@ -308,4 +339,5 @@
   </script>
 </body>
 </html>
+
 
